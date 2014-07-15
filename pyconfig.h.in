@@ -519,6 +519,9 @@
 /* Define to 1 if you have the <linux/can.h> header file. */
 #undef HAVE_LINUX_CAN_H
 
+/* Define to 1 if you have the <linux/can/j1939.h> header file. */
+#undef HAVE_LINUX_CAN_J1939_H
+
 /* Define to 1 if you have the <linux/can/raw.h> header file. */
 #undef HAVE_LINUX_CAN_RAW_H
 

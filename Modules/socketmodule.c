@@ -1629,6 +1629,57 @@ getsockaddrarg(PySocketSockObject *s, PyObject *args,
             Py_DECREF(interfaceName);
             return 1;
         }
+
+#ifdef HAVE_LINUX_CAN_J1939_H
+        case CAN_J1939:
+        {
+          struct sockaddr_can *addr;
+          PyObject *interfaceName;
+          struct ifreq ifr;
+          Py_ssize_t len;
+          unsigned PY_LONG_LONG j_name;
+          int j_pgn;
+          unsigned char j_addr;
+
+          addr = (struct sockaddr_can *) addr_ret;
+          if (!PyArg_ParseTuple(args,"O&LiB", PyUnicode_FSConverter, &interfaceName, &j_name,&j_pgn,&j_addr))
+            return 0;
+
+          len = PyBytes_GET_SIZE(interfaceName);
+
+            if (len == 0) {
+                ifr.ifr_ifindex = 0;
+            } else if (len < sizeof(ifr.ifr_name)) {
+                strncpy(ifr.ifr_name, PyBytes_AS_STRING(interfaceName), sizeof(ifr.ifr_name));
+                ifr.ifr_name[(sizeof(ifr.ifr_name))-1] = '\0';
+                if (ioctl(s->sock_fd, SIOCGIFINDEX, &ifr) < 0) {
+                    s->errorhandler();
+                    Py_DECREF(interfaceName);
+                    return 0;
+                }
+            } else {
+                PyErr_SetString(PyExc_OSError,
+                                "AF_CAN interface name too long");
+                Py_DECREF(interfaceName);
+                return 0;
+            }
+
+            addr->can_family = AF_CAN;
+            addr->can_ifindex = ifr.ifr_ifindex;
+            addr->can_addr.j1939.name = j_name;
+            addr->can_addr.j1939.pgn = j_pgn;
+            addr->can_addr.j1939.addr = j_addr;
+
+            *len_ret = sizeof(*addr);
+            Py_DECREF(interfaceName);
+            return 1;
+
+
+
+
+        }
+#endif
+
         default:
             PyErr_SetString(PyExc_OSError,
                             "getsockaddrarg: unsupported CAN protocol");
@@ -6324,6 +6375,22 @@ PyInit__socket(void)
     PyModule_AddIntConstant(m, "CAN_BCM_RX_TIMEOUT", RX_TIMEOUT);
     PyModule_AddIntConstant(m, "CAN_BCM_RX_CHANGED", RX_CHANGED);
 #endif
+
+#ifdef  HAVE_LINUX_CAN_J1939_H
+    PyModule_AddIntConstant(m, "CAN_J1939",CAN_J1939);
+    PyModule_AddIntConstant(m,"J1939_IDLE_ADDR",J1939_IDLE_ADDR);
+    PyModule_AddIntConstant(m,"J1939_NO_ADDR",J1939_NO_ADDR);
+    PyModule_AddIntConstant(m,"J1939_NO_NAME",J1939_NO_NAME);
+    PyModule_AddIntConstant(m,"J1939_NO_PGN",J1939_NO_PGN);
+#endif
+#ifdef SOL_CAN_J1939
+    PyModule_AddIntConstant(m,"SOL_CAN_J1939",SOL_CAN_J1939);
+    PyModule_AddIntConstant(m,"SO_J1939_FILTER",1);
+    PyModule_AddIntConstant(m,"SO_J1939_PROMISC",2);
+    PyModule_AddIntConstant(m,"SO_J1939_RECV_OWN",3);
+    PyModule_AddIntConstant(m,"SO_J1939_SEND_PRIO",4);
+#endif
+
 #ifdef SOL_RDS
     PyModule_AddIntMacro(m, SOL_RDS);
 #endif

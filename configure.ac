@@ -1611,6 +1611,17 @@ AC_CHECK_HEADERS(linux/can.h linux/can/raw.h linux/can/bcm.h,,,[
 #endif
 ])
 
+# On Linux, j1939.h requires can.h
+AC_CHECK_HEADERS(linux/can/j1939.h,,,[
+#ifdef HAVE_SYS_SOCKET_H
+#ifdef HAVE_LINUX_CAN_H
+#include <sys/socket.h>
+#include <linux/can.h>
+#include <linux/types.h>
+#endif
+#endif
+])
+
 # checks for typedefs
 was_it_defined=no
 AC_MSG_CHECKING(for clock_t in time.h)
